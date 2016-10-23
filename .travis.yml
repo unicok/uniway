@@ -9,8 +9,7 @@ install:
 script:
     - go vet -x
     - go install
-    - go install uniway
-    - go test -race -coverprofile=coverage.txt -covermode=atomic -v uniway
+    - go test -race -coverprofile=coverage.txt -covermode=atomic -v
 
 after_success:
     - bash <(curl -s https://codecov.io/bash)
