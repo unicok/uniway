@@ -1,0 +1,16 @@
+language: go
+
+go:
+  - 1.7
+
+install:
+    - go get -t -v ./...
+
+script:
+    - go vet -x
+    - go install
+    - go install uniway
+    - go test -race -coverprofile=coverage.txt -covermode=atomic -v uniway
+
+after_success:
+    - bash <(curl -s https://codecov.io/bash)
