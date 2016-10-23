@@ -1,0 +1,31 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "2avCvSn0XonfApKKuTMyiQmk7s0=",
+			"path": "github.com/Sirupsen/logrus",
+			"revision": "3ec0642a7fb6488f65b06f9040adc67e3990296a",
+			"revisionTime": "2016-08-29T20:23:21Z"
+		},
+		{
+			"checksumSHA1": "Lf3uUXTkKK5DJ37BxQvxO1Fq+K8=",
+			"path": "github.com/davecgh/go-spew/spew",
+			"revision": "6d212800a42e8ab5c146b8ace3490ee17e5225f9",
+			"revisionTime": "2016-09-07T16:21:46Z"
+		},
+		{
+			"checksumSHA1": "gzcZFMSYbpLLMC8EpxZ87JzIZhA=",
+			"path": "github.com/funny/cmd",
+			"revision": "2555ac6e78b8cba57d4412e87b8c24cdded98763",
+			"revisionTime": "2016-10-12T15:10:51Z"
+		},
+		{
+			"checksumSHA1": "rC16YASwoo46qSTSxs7FMCxxjlk=",
+			"path": "github.com/funny/pprof",
+			"revision": "98f026be1494cddfc5808d5a5befbf28bd9456b7",
+			"revisionTime": "2015-12-24T07:32:20Z"
+		}
+	],
+	"rootPath": "uniway"
+}
