@@ -4,7 +4,6 @@ go:
   - 1.7
 
 install:
-    - go get -t -v ./...
 
 script:
     - go vet -x
