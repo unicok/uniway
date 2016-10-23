@@ -5,8 +5,6 @@ import (
 	"log"
 	"net"
 	"time"
-
-	"github.com/funny/cmd"
 )
 
 var (
@@ -73,7 +71,8 @@ func main() {
 	}
 	go gw.ServeServers(listen("server", *serverAddr), serverConfig)
 
-	cmd.Shell("uniway")
+	// cmd.Shell("uniway")
+	signalWait("uniway")
 
 	gw.Stop()
 }
