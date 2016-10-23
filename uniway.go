@@ -5,6 +5,8 @@ import (
 	"log"
 	"net"
 	"time"
+
+	"github.com/funny/cmd"
 )
 
 var (
@@ -70,6 +72,8 @@ func main() {
 		IdleTimeout:  *serverIdleTimeout,
 	}
 	go gw.ServeServers(listen("server", *serverAddr), serverConfig)
+
+	cmd.Shell("uniway")
 
 	gw.Stop()
 }
