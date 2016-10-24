@@ -1,4 +1,4 @@
-package main
+package uiway
 
 //
 // This code written by https://github.com/siddontang

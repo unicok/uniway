@@ -1,4 +1,4 @@
-package main
+package uiway
 
 import (
 	"math/rand"
