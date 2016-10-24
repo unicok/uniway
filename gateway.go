@@ -1,4 +1,4 @@
-package uiway
+package uniway
 
 import (
 	"fmt"
@@ -27,7 +27,7 @@ type Gateway struct {
 	servers [2]*Server
 
 	physicalConnID uint32
-	physicalConns  [connBuckets][2]*Channel
+	physicalConns  [connBuckets][2]*channel
 
 	virtualConnID      uint32
 	virtualConns       [connBuckets]map[uint32][2]*Session
@@ -47,8 +47,8 @@ func NewGateway(pool Pool, maxPacketSize int) *Gateway {
 	}
 
 	for i := 0; i < connBuckets; i++ {
-		gw.physicalConns[i][0] = NewChannel()
-		gw.physicalConns[i][1] = NewChannel()
+		gw.physicalConns[i][0] = newChannel()
+		gw.physicalConns[i][1] = newChannel()
 	}
 	return gw
 }

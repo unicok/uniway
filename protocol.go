@@ -4,7 +4,7 @@
 // +--------+---------+------+----------+
 //     4        4        1    Len - 4 -1
 
-package uiway
+package uniway
 
 import (
 	"bytes"

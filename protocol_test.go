@@ -1,4 +1,4 @@
-package uiway
+package uniway
 
 import (
 	"math/rand"
