@@ -1,4 +1,4 @@
-package uniway
+package main
 
 import "io"
 

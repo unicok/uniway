@@ -1,4 +1,4 @@
-package uniway
+package main
 
 import (
 	"errors"
@@ -14,8 +14,8 @@ var EndpointTimer = NewTimingWheel(time.Second, 1800)
 // ErrRefused happens when virtual connection couldn't dial to remote EndPoint.
 var ErrRefused = errors.New("virtual connection refused")
 
-// Config used to config EndPoint.
-type Config struct {
+// EndpointConfig used to config EndPoint.
+type EndpointConfig struct {
 	MemPool         Pool
 	MaxPacket       int
 	BufferSize      int
@@ -28,9 +28,29 @@ type Config struct {
 	AuthKey         string
 }
 
-// NewClient dial to gateway and return a client EndPoint.
+// DialClient dial to gateway and return a client EndPoint.
+// addr is the gateway address.
+func DialClient(network, addr string, config EndpointConfig) (*Endpoint, error) {
+	conn, err := net.Dial(network, addr)
+	if err != nil {
+		return nil, err
+	}
+	return NewEPClient(conn, config)
+}
+
+// DialServer dial to gateway and return a server EndPoint.
+// addr is the gateway address.
+func DialServer(network, addr string, config EndpointConfig) (*Endpoint, error) {
+	conn, err := net.Dial(network, addr)
+	if err != nil {
+		return nil, err
+	}
+	return NewEPServer(conn, config)
+}
+
+// NewEPClient dial to gateway and return a client EndPoint.
 // conn is the physical connection.
-func NewClient(conn net.Conn, config Config) (*Endpoint, error) {
+func NewEPClient(conn net.Conn, config EndpointConfig) (*Endpoint, error) {
 	ep := newEndpoint(config.MemPool, config.MaxPacket, config.RecvChanSize)
 	ep.session = NewSession(newCodec(&ep.protocol, 0, conn, config.BufferSize), config.SendChanSize)
 	go ep.loop()
@@ -38,9 +58,9 @@ func NewClient(conn net.Conn, config Config) (*Endpoint, error) {
 	return ep, nil
 }
 
-// NewServer dial to gateway and return a server EndPoint.
+// NewEPServer dial to gateway and return a server EndPoint.
 // conn is the physical connection.
-func NewServer(conn net.Conn, config Config) (*Endpoint, error) {
+func NewEPServer(conn net.Conn, config EndpointConfig) (*Endpoint, error) {
 	ep := newEndpoint(config.MemPool, config.MaxPacket, config.RecvChanSize)
 	if err := ep.serverInit(conn, config.ServerID, []byte(config.AuthKey)); err != nil {
 		return nil, err
@@ -234,7 +254,7 @@ func (ep *Endpoint) processCmd(buf []byte) {
 	case pingCmd:
 		ep.free(buf)
 
-	defautl:
+	default:
 		ep.free(buf)
 		panic("unsupported command")
 	}
