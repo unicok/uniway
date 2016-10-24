@@ -3,16 +3,34 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "JiTaaqMJ0WfwRKycs3y6rDKZgAk=",
+			"checksumSHA1": "2avCvSn0XonfApKKuTMyiQmk7s0=",
 			"path": "github.com/Sirupsen/logrus",
 			"revision": "3ec0642a7fb6488f65b06f9040adc67e3990296a",
 			"revisionTime": "2016-08-29T20:23:21Z"
 		},
 		{
-			"checksumSHA1": "VgdO95xKa54YWKwGrKWvVnDXVOc=",
+			"checksumSHA1": "Lf3uUXTkKK5DJ37BxQvxO1Fq+K8=",
 			"path": "github.com/davecgh/go-spew/spew",
 			"revision": "6d212800a42e8ab5c146b8ace3490ee17e5225f9",
 			"revisionTime": "2016-09-07T16:21:46Z"
+		},
+		{
+			"checksumSHA1": "hU4VbPXSsZg1QjmaD2GCaZIS7ig=",
+			"path": "github.com/unicok/cmd",
+			"revision": "ca1314aa05a3b0f91fa3f482aa98d107d668b4c2",
+			"revisionTime": "2016-10-24T18:07:53Z"
+		},
+		{
+			"checksumSHA1": "HwTYYziwztxtubzZfiA7dljFThs=",
+			"path": "github.com/unicok/pprof",
+			"revision": "2e8aebbe4c07e2093b6da58003db9fe5f77eed67",
+			"revisionTime": "2016-10-24T18:05:35Z"
+		},
+		{
+			"checksumSHA1": "2uZCKR9XrQueg2hMQ3pCPiQ3gzY=",
+			"path": "github.com/unicok/slab",
+			"revision": "e1039822977639177dc36444108f918003826b04",
+			"revisionTime": "2016-10-24T18:41:34Z"
 		},
 		{
 			"checksumSHA1": "Xz3hUrPvOYGWTuHrEryoYAj9zwg=",
