@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type TimingWheel struct {
+type timingWheel struct {
 	sync.Mutex
 
 	interval time.Duration
@@ -25,8 +25,8 @@ type TimingWheel struct {
 	pos int
 }
 
-func NewTimingWheel(interval time.Duration, buckets int) *TimingWheel {
-	w := new(TimingWheel)
+func newTimingWheel(interval time.Duration, buckets int) *timingWheel {
+	w := new(timingWheel)
 
 	w.interval = interval
 
@@ -47,11 +47,11 @@ func NewTimingWheel(interval time.Duration, buckets int) *TimingWheel {
 	return w
 }
 
-func (w *TimingWheel) Stop() {
+func (w *timingWheel) stop() {
 	close(w.quit)
 }
 
-func (w *TimingWheel) After(timeout time.Duration) <-chan struct{} {
+func (w *timingWheel) after(timeout time.Duration) <-chan struct{} {
 	if timeout >= w.maxTimeout {
 		panic("timeout too much, over maxtimeout")
 	}
@@ -72,7 +72,7 @@ func (w *TimingWheel) After(timeout time.Duration) <-chan struct{} {
 	return b
 }
 
-func (w *TimingWheel) run() {
+func (w *timingWheel) run() {
 	for {
 		select {
 		case <-w.ticker.C:
@@ -84,7 +84,7 @@ func (w *TimingWheel) run() {
 	}
 }
 
-func (w *TimingWheel) onTicker() {
+func (w *timingWheel) onTicker() {
 	w.Lock()
 
 	lastC := w.cs[w.pos]

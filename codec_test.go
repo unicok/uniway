@@ -80,7 +80,7 @@ func Test_VirtualCodec(t *testing.T) {
 	defer conn.Close()
 
 	codec := newCodec(&TestProto, 0, conn, 1024)
-	pconn := NewSession(codec, 1000)
+	pconn := newSession(codec, 1000)
 
 	var lastActive int64
 	vcodec := newVirtualCodec(&TestProto, pconn, 123, 1024, &lastActive)
@@ -140,7 +140,7 @@ func Test_BadVirtualCodec(t *testing.T) {
 	defer conn.Close()
 
 	codec := newCodec(&TestProto, 0, conn, 1024)
-	pconn := NewSession(codec, 1000)
+	pconn := newSession(codec, 1000)
 
 	var lastActive int64
 	vcodec := newVirtualCodec(&TestProto, pconn, 123, 1024, &lastActive)

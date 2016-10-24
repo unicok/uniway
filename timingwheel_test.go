@@ -7,11 +7,11 @@ import (
 )
 
 func Test_TimingWheel(t *testing.T) {
-	w := NewTimingWheel(100*time.Millisecond, 10)
+	w := newTimingWheel(100*time.Millisecond, 10)
 
 	for {
 		select {
-		case <-w.After(200 * time.Millisecond):
+		case <-w.after(200 * time.Millisecond):
 			log.Println("1")
 			return
 		}

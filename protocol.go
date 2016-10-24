@@ -30,11 +30,11 @@ func (p *protocol) free(msg []byte) {
 	p.pool.Free(msg)
 }
 
-func (p *protocol) send(session *Session, msg []byte) error {
-	err := session.Send(&msg)
+func (p *protocol) send(session *session, msg []byte) error {
+	err := session.send(&msg)
 	if err != nil {
 		p.free(msg)
-		session.Close()
+		session.close()
 	}
 	return err
 }

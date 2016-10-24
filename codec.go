@@ -83,14 +83,14 @@ func (c *codec) ClearSendChan(sendChan <-chan interface{}) {
 
 type virtualCodec struct {
 	*protocol
-	phyConn    *Session
+	phyConn    *session
 	connID     uint32
 	recvChan   chan []byte
 	closeOnce  sync.Once
 	lastActive *int64
 }
 
-func newVirtualCodec(p *protocol, phyConn *Session, connID uint32, recvChanSize int, lastActive *int64) *virtualCodec {
+func newVirtualCodec(p *protocol, phyConn *session, connID uint32, recvChanSize int, lastActive *int64) *virtualCodec {
 	return &virtualCodec{
 		protocol:   p,
 		connID:     connID,

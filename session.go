@@ -8,16 +8,16 @@ import (
 )
 
 var (
-	ErrSessionClosed  = errors.New("Session Closed")
-	ErrSessionBlocked = errors.New("Session Blocked")
+	ErrSessionClosed  = errors.New("session Closed")
+	ErrSessionBlocked = errors.New("session Blocked")
 )
 
 var globalSessionID uint64
 
-type Session struct {
+type session struct {
 	id        uint64
 	codec     Codec
-	manager   *SessionManager
+	manager   *sessionManager
 	sendChan  chan interface{}
 	sendMutex sync.RWMutex
 
@@ -29,12 +29,12 @@ type Session struct {
 	State interface{}
 }
 
-func NewSession(codec Codec, sendChanSize int) *Session {
-	return newSession(nil, codec, sendChanSize)
+func newSession(codec Codec, sendChanSize int) *session {
+	return newSessionWithManager(nil, codec, sendChanSize)
 }
 
-func newSession(manager *SessionManager, codec Codec, sendChanSize int) *Session {
-	sess := &Session{
+func newSessionWithManager(manager *sessionManager, codec Codec, sendChanSize int) *session {
+	sess := &session{
 		codec:     codec,
 		manager:   manager,
 		closeChan: make(chan struct{}),
@@ -47,15 +47,11 @@ func newSession(manager *SessionManager, codec Codec, sendChanSize int) *Session
 	return sess
 }
 
-func (s *Session) ID() uint64 {
-	return s.id
-}
-
-func (s *Session) IsClosed() bool {
+func (s *session) isClosed() bool {
 	return atomic.LoadInt32(&s.closeFlag) == 1
 }
 
-func (s *Session) Close() error {
+func (s *session) close() error {
 	if atomic.CompareAndSwapInt32(&s.closeFlag, 0, 1) {
 		close(s.closeChan)
 
@@ -78,20 +74,20 @@ func (s *Session) Close() error {
 	return ErrSessionClosed
 }
 
-func (s *Session) Codec() Codec {
+func (s *session) getCodec() Codec {
 	return s.codec
 }
 
-func (s *Session) Receive() (interface{}, error) {
+func (s *session) receive() (interface{}, error) {
 	msg, err := s.codec.Receive()
 	if err != nil {
-		s.Close()
+		s.close()
 	}
 	return msg, err
 }
 
-func (s *Session) sendLoop() {
-	defer s.Close()
+func (s *session) sendLoop() {
+	defer s.close()
 	for {
 		select {
 		case msg, ok := <-s.sendChan:
@@ -104,15 +100,15 @@ func (s *Session) sendLoop() {
 	}
 }
 
-func (s *Session) Send(msg interface{}) error {
-	if s.IsClosed() {
+func (s *session) send(msg interface{}) error {
+	if s.isClosed() {
 		return ErrSessionClosed
 	}
 
 	if s.sendChan == nil {
 		err := s.codec.Send(msg)
 		if err != nil {
-			s.Close()
+			s.close()
 		}
 		return err
 	}
@@ -127,7 +123,7 @@ func (s *Session) Send(msg interface{}) error {
 		return ErrSessionClosed
 	default:
 		s.sendMutex.RUnlock()
-		s.Close()
+		s.close()
 		return ErrSessionClosed
 	}
 }
@@ -137,8 +133,8 @@ type closeCallback struct {
 	Func    func()
 }
 
-func (s *Session) addCloseCallback(handler interface{}, callback func()) {
-	if s.IsClosed() {
+func (s *session) addCloseCallback(handler interface{}, callback func()) {
+	if s.isClosed() {
 		return
 	}
 
@@ -152,8 +148,8 @@ func (s *Session) addCloseCallback(handler interface{}, callback func()) {
 	s.closeCallbacks.PushBack(closeCallback{handler, callback})
 }
 
-func (s *Session) removeCloseCallback(handler interface{}) {
-	if s.IsClosed() {
+func (s *session) removeCloseCallback(handler interface{}) {
+	if s.isClosed() {
 		return
 	}
 
@@ -168,7 +164,7 @@ func (s *Session) removeCloseCallback(handler interface{}) {
 	}
 }
 
-func (s *Session) invokeCloseCallbacks() {
+func (s *session) invokeCloseCallbacks() {
 	s.closeMutex.Lock()
 	defer s.closeMutex.Unlock()
 
@@ -186,7 +182,7 @@ func (s *Session) invokeCloseCallbacks() {
 
 const sessionMapNum = 32
 
-type SessionManager struct {
+type sessionManager struct {
 	sessionMaps [sessionMapNum]sessionMap
 	disposeFlag bool
 	disposeOnce sync.Once
@@ -195,25 +191,25 @@ type SessionManager struct {
 
 type sessionMap struct {
 	sync.RWMutex
-	sessions map[uint64]*Session
+	sessions map[uint64]*session
 }
 
-func NewSessionManager() *SessionManager {
-	manager := &SessionManager{}
+func newSessionManager() *sessionManager {
+	manager := &sessionManager{}
 	for i := 0; i < len(manager.sessionMaps); i++ {
-		manager.sessionMaps[i].sessions = make(map[uint64]*Session)
+		manager.sessionMaps[i].sessions = make(map[uint64]*session)
 	}
 	return manager
 }
 
-func (sm *SessionManager) Dispose() {
+func (sm *sessionManager) dispose() {
 	sm.disposeOnce.Do(func() {
 		sm.disposeFlag = true
 		for i := 0; i < sessionMapNum; i++ {
 			smap := &sm.sessionMaps[i]
 			smap.Lock()
 			for _, sess := range smap.sessions {
-				sess.Close()
+				sess.close()
 			}
 			smap.Unlock()
 		}
@@ -221,13 +217,13 @@ func (sm *SessionManager) Dispose() {
 	})
 }
 
-func (sm *SessionManager) NewSession(codec Codec, sendChanSize int) *Session {
-	sess := newSession(sm, codec, sendChanSize)
+func (sm *sessionManager) newSession(codec Codec, sendChanSize int) *session {
+	sess := newSessionWithManager(sm, codec, sendChanSize)
 	sm.putSession(sess)
 	return sess
 }
 
-func (sm *SessionManager) GetSession(sessID uint64) *Session {
+func (sm *sessionManager) getSession(sessID uint64) *session {
 	smap := &sm.sessionMaps[sessID%sessionMapNum]
 	smap.RLock()
 	defer smap.Unlock()
@@ -236,7 +232,7 @@ func (sm *SessionManager) GetSession(sessID uint64) *Session {
 	return sess
 }
 
-func (sm *SessionManager) putSession(sess *Session) {
+func (sm *sessionManager) putSession(sess *session) {
 	smap := &sm.sessionMaps[sess.id%sessionMapNum]
 	smap.Lock()
 	defer smap.Unlock()
@@ -245,7 +241,7 @@ func (sm *SessionManager) putSession(sess *Session) {
 	sm.disposeWait.Add(1)
 }
 
-func (sm *SessionManager) delSession(sess *Session) {
+func (sm *sessionManager) delSession(sess *session) {
 	if sm.disposeFlag {
 		sm.disposeWait.Done()
 		return

@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-var EndpointTimer = NewTimingWheel(time.Second, 1800)
+var endpointTimer = newTimingWheel(time.Second, 1800)
 
 // ErrRefused happens when virtual connection couldn't dial to remote EndPoint.
 var ErrRefused = errors.New("virtual connection refused")
@@ -52,7 +52,7 @@ func DialServer(network, addr string, config EndpointConfig) (*Endpoint, error) 
 // conn is the physical connection.
 func NewEPClient(conn net.Conn, config EndpointConfig) (*Endpoint, error) {
 	ep := newEndpoint(config.MemPool, config.MaxPacket, config.RecvChanSize)
-	ep.session = NewSession(newCodec(&ep.protocol, 0, conn, config.BufferSize), config.SendChanSize)
+	ep.session = newSession(newCodec(&ep.protocol, 0, conn, config.BufferSize), config.SendChanSize)
 	go ep.loop()
 	go ep.keepalive(config.PingInterval, config.PingTimeout, config.TimeoutCallback)
 	return ep, nil
@@ -65,14 +65,14 @@ func NewEPServer(conn net.Conn, config EndpointConfig) (*Endpoint, error) {
 	if err := ep.serverInit(conn, config.ServerID, []byte(config.AuthKey)); err != nil {
 		return nil, err
 	}
-	ep.session = NewSession(newCodec(&ep.protocol, 0, conn, config.BufferSize), config.SendChanSize)
+	ep.session = newSession(newCodec(&ep.protocol, 0, conn, config.BufferSize), config.SendChanSize)
 	go ep.loop()
 	go ep.keepalive(config.PingInterval, config.PingTimeout, config.TimeoutCallback)
 	return ep, nil
 }
 
 type vconn struct {
-	Session  *Session
+	session  *session
 	ConnID   uint32
 	RemoteID uint32
 }
@@ -80,9 +80,9 @@ type vconn struct {
 // Endpoint is can be a client or a server.
 type Endpoint struct {
 	protocol
-	manager      *SessionManager
+	manager      *sessionManager
 	recvChanSize int
-	session      *Session
+	session      *session
 	lastActive   int64
 	newConnMutex sync.Mutex
 	newConnChan  chan uint32
@@ -97,7 +97,7 @@ type Endpoint struct {
 func newEndpoint(pool Pool, maxPacketSize, recvChanSize int) *Endpoint {
 	return &Endpoint{
 		protocol:     protocol{pool, maxPacketSize},
-		manager:      NewSessionManager(),
+		manager:      newSessionManager(),
 		recvChanSize: recvChanSize,
 		newConnChan:  make(chan uint32),
 		acceptChan:   make(chan vconn, 1),
@@ -108,17 +108,17 @@ func newEndpoint(pool Pool, maxPacketSize, recvChanSize int) *Endpoint {
 }
 
 // Accept is accept a virutal connection
-func (ep *Endpoint) Accept() (session *Session, connID, remoteID uint32, err error) {
+func (ep *Endpoint) Accept() (session *session, connID, remoteID uint32, err error) {
 	select {
 	case conn := <-ep.connectChan:
-		return conn.Session, conn.ConnID, conn.RemoteID, nil
+		return conn.session, conn.ConnID, conn.RemoteID, nil
 	case <-ep.closeChan:
 		return nil, 0, 0, io.EOF
 	}
 }
 
 // Dial create a virtual connection and dial to a remote Endpoint
-func (ep *Endpoint) Dial(remoteID uint32) (*Session, uint32, error) {
+func (ep *Endpoint) Dial(remoteID uint32) (*session, uint32, error) {
 	ep.dialMutex.Lock()
 	defer ep.dialMutex.Unlock()
 
@@ -128,32 +128,32 @@ func (ep *Endpoint) Dial(remoteID uint32) (*Session, uint32, error) {
 
 	select {
 	case conn := <-ep.acceptChan:
-		if conn.Session == nil {
+		if conn.session == nil {
 			return nil, 0, ErrRefused
 		}
-		return conn.Session, conn.ConnID, nil
+		return conn.session, conn.ConnID, nil
 	case <-ep.closeChan:
 		return nil, 0, io.EOF
 	}
 }
 
 // GetSession get a virtual connection session by session ID.
-func (ep *Endpoint) GetSession(sessionID uint64) *Session {
-	return ep.manager.GetSession(sessionID)
+func (ep *Endpoint) GetSession(sessionID uint64) *session {
+	return ep.manager.getSession(sessionID)
 }
 
 // Close Endpoint
 func (ep *Endpoint) Close() {
 	if atomic.CompareAndSwapInt32(&ep.closeFlag, 0, 1) {
-		ep.manager.Dispose()
-		ep.session.Close()
+		ep.manager.dispose()
+		ep.session.close()
 		close(ep.closeChan)
 	}
 }
 
 func (ep *Endpoint) addVirtualConn(connID, remoteID uint32, c chan vconn) {
 	codec := newVirtualCodec(&ep.protocol, ep.session, connID, ep.recvChanSize, &ep.lastActive)
-	session := ep.manager.NewSession(codec, 0)
+	session := ep.manager.newSession(codec, 0)
 	ep.virtualConns.put(connID, session)
 	select {
 	case c <- vconn{session, connID, remoteID}:
@@ -166,7 +166,7 @@ func (ep *Endpoint) addVirtualConn(connID, remoteID uint32, c chan vconn) {
 func (ep *Endpoint) keepalive(pingInterval, pingTimeout time.Duration, timeoutCallback func()) {
 	for {
 		select {
-		case <-EndpointTimer.After(pingInterval):
+		case <-endpointTimer.after(pingInterval):
 			if time.Duration(atomic.LoadInt64(&ep.lastActive)) >= pingInterval {
 				if ep.send(ep.session, ep.encodePingCmd()) != nil {
 					return
@@ -174,7 +174,7 @@ func (ep *Endpoint) keepalive(pingInterval, pingTimeout time.Duration, timeoutCa
 			}
 			if timeoutCallback != nil {
 				select {
-				case <-EndpointTimer.After(pingTimeout):
+				case <-endpointTimer.after(pingTimeout):
 					if time.Duration(atomic.LoadInt64(&ep.lastActive)) >= pingTimeout {
 						timeoutCallback()
 					}
@@ -189,12 +189,12 @@ func (ep *Endpoint) keepalive(pingInterval, pingTimeout time.Duration, timeoutCa
 }
 
 func (ep *Endpoint) loop() {
-	defer PrintPanicStack()
+	defer printPanicStack()
 
 	for {
 		atomic.StoreInt64(&ep.lastActive, time.Now().UnixNano())
 
-		msg, err := ep.session.Receive()
+		msg, err := ep.session.receive()
 		if err != nil {
 			return
 		}
@@ -210,10 +210,10 @@ func (ep *Endpoint) loop() {
 		vconn := ep.virtualConns.get(connID)
 		if vconn != nil {
 			select {
-			case vconn.Codec().(*virtualCodec).recvChan <- buf:
+			case vconn.getCodec().(*virtualCodec).recvChan <- buf:
 				continue
 			default:
-				vconn.Close()
+				vconn.close()
 			}
 		}
 		ep.free(buf)
@@ -248,7 +248,7 @@ func (ep *Endpoint) processCmd(buf []byte) {
 		ep.free(buf)
 		vconn := ep.virtualConns.get(connID)
 		if vconn != nil {
-			vconn.Close()
+			vconn.close()
 		}
 
 	case pingCmd:

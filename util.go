@@ -12,7 +12,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
-func PrintPanicStack(extras ...interface{}) {
+func printPanicStack(extras ...interface{}) {
 	if x := recover(); x != nil {
 		log.Error(x)
 		i := 0
@@ -43,7 +43,7 @@ func PrintPanicStack(extras ...interface{}) {
 // )
 
 func signalWait(name string) {
-	defer PrintPanicStack()
+	defer printPanicStack()
 
 	if pid := syscall.Getpid(); pid != 1 {
 		ioutil.WriteFile(name+".pid", []byte(strconv.Itoa(pid)), 0777)
