@@ -189,7 +189,7 @@ func Test_BadSession(t *testing.T) {
 
 	codec := newCodec(&TestProto, 0, conn, 1024)
 	session := newSession(codec, 10)
-	session.close()
+	session.Close()
 
 	err = TestProto.send(session, TestProto.encodePingCmd())
 	assert(t, err != nil, "")
