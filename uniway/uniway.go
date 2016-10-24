@@ -2,21 +2,18 @@ package main
 
 import (
 	"flag"
-	"io/ioutil"
 	"log"
 	"net"
-	"os"
-	"os/signal"
-	"strconv"
-	"syscall"
 	"time"
 
+	"github.com/unicok/cmd"
+	"github.com/unicok/slab"
 	. "github.com/unicok/uniway"
 )
 
 var (
-	maxPacket = flag.Int("MaxPacket", 512*1024, "Limit max packet size.")
-	// memPoolType     = flag.String("MemPoolType", "atom", "Type of memory pool ('sync', 'atom' or 'chan').")
+	maxPacket       = flag.Int("MaxPacket", 512*1024, "Limit max packet size.")
+	memPoolType     = flag.String("MemPoolType", "atom", "Type of memory pool ('sync', 'atom' or 'chan').")
 	memPoolFactor   = flag.Int("MemPoolFactor", 2, "Growth in chunk size in memory pool.")
 	memPoolMinChunk = flag.Int("MemPoolMinChunk", 64, "Smallest chunk size in memory pool.")
 	memPoolMaxChunk = flag.Int("MemPoolMaxChunk", 64*1024, "Largest chunk size in memory pool.")
@@ -52,11 +49,17 @@ func main() {
 		println("server send chan size must greater than zero.")
 	}
 
-	pool := NewPool(
-		*memPoolMinChunk,
-		*memPoolMaxChunk,
-		*memPoolFactor,
-		*memPoolPageSize)
+	var pool slab.Pool
+	switch *memPoolType {
+	case "sync":
+		pool = slab.NewSyncPool(*memPoolMinChunk, *memPoolMaxChunk, *memPoolFactor)
+	case "atom":
+		pool = slab.NewAtomPool(*memPoolMinChunk, *memPoolMaxChunk, *memPoolFactor, *memPoolPageSize)
+	case "chan":
+		pool = slab.NewChanPool(*memPoolMinChunk, *memPoolMaxChunk, *memPoolFactor, *memPoolPageSize)
+	default:
+		println(`unsupported memory pool type, must be "sync", "atom" or "chan"`)
+	}
 
 	gw := NewGateway(pool, *maxPacket)
 
@@ -78,8 +81,7 @@ func main() {
 	}
 	go gw.ServeServers(listen("server", *serverAddr), serverConfig)
 
-	// cmd.Shell("uniway")
-	signalWait("uniway")
+	cmd.Shell("uniway")
 
 	gw.Stop()
 }
@@ -95,24 +97,4 @@ func listen(who, addr string) net.Listener {
 
 	log.Printf("setup %s listener at - %s", who, lsn.Addr())
 	return lsn
-}
-
-func signalWait(name string) {
-	defer PrintPanicStack()
-
-	if pid := syscall.Getpid(); pid != 1 {
-		ioutil.WriteFile(name+".pid", []byte(strconv.Itoa(pid)), 0777)
-		defer os.Remove(name + ".pid")
-	}
-
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
-
-	for sig := range sigChan {
-		switch sig {
-		case syscall.SIGTERM, syscall.SIGINT:
-			log.Println(name, "killed")
-			return
-		}
-	}
 }

@@ -7,6 +7,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/unicok/slab"
 )
 
 var endpointTimer = newTimingWheel(time.Second, 1800)
@@ -16,7 +18,7 @@ var ErrRefused = errors.New("virtual connection refused")
 
 // EndpointConfig used to config EndPoint.
 type EndpointConfig struct {
-	MemPool         Pool
+	MemPool         slab.Pool
 	MaxPacket       int
 	BufferSize      int
 	SendChanSize    int
@@ -30,7 +32,7 @@ type EndpointConfig struct {
 
 func DefaultEPConfig() EndpointConfig {
 	return EndpointConfig{
-		MemPool:      NewPool(2, 64, 64*1024, 1024*1024),
+		MemPool:      slab.NewAtomPool(2, 64, 64*1024, 1024*1024),
 		MaxPacket:    512 * 1024,
 		BufferSize:   64 * 1024,
 		SendChanSize: 102400,
@@ -106,7 +108,7 @@ type Endpoint struct {
 	closeFlag    int32
 }
 
-func newEndpoint(pool Pool, maxPacketSize, recvChanSize int) *Endpoint {
+func newEndpoint(pool slab.Pool, maxPacketSize, recvChanSize int) *Endpoint {
 	return &Endpoint{
 		protocol:     protocol{pool, maxPacketSize},
 		manager:      newSessionManager(),

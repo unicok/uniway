@@ -15,10 +15,12 @@ import (
 	"io"
 	"net"
 	"time"
+
+	"github.com/unicok/slab"
 )
 
 type protocol struct {
-	pool          Pool
+	pool          slab.Pool
 	maxPacketSize int
 }
 

@@ -8,6 +8,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/unicok/slab"
 )
 
 const connBuckets = 32
@@ -36,7 +38,7 @@ type Gateway struct {
 }
 
 // NewGateway create a gateway
-func NewGateway(pool Pool, maxPacketSize int) *Gateway {
+func NewGateway(pool slab.Pool, maxPacketSize int) *Gateway {
 	var gw = &Gateway{}
 
 	gw.pool = pool
