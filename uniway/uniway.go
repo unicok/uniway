@@ -2,9 +2,16 @@ package main
 
 import (
 	"flag"
+	"io/ioutil"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"strconv"
+	"syscall"
 	"time"
+
+	. "github.com/unicok/uniway"
 )
 
 var (
@@ -88,4 +95,24 @@ func listen(who, addr string) net.Listener {
 
 	log.Printf("setup %s listener at - %s", who, lsn.Addr())
 	return lsn
+}
+
+func signalWait(name string) {
+	defer PrintPanicStack()
+
+	if pid := syscall.Getpid(); pid != 1 {
+		ioutil.WriteFile(name+".pid", []byte(strconv.Itoa(pid)), 0777)
+		defer os.Remove(name + ".pid")
+	}
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
+
+	for sig := range sigChan {
+		switch sig {
+		case syscall.SIGTERM, syscall.SIGINT:
+			log.Println(name, "killed")
+			return
+		}
+	}
 }

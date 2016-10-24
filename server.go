@@ -1,4 +1,4 @@
-package main
+package uniway
 
 import (
 	"io"
@@ -23,7 +23,7 @@ func newServer(l net.Listener, p Protocol, sendChanSize int) *server {
 	}
 }
 
-func (s *server) serve(handler func(*session)) error {
+func (s *server) serve(handler func(*Session)) error {
 	for {
 		conn, err := s.accept()
 		if err != nil {
@@ -41,7 +41,7 @@ func (s *server) serve(handler func(*session)) error {
 	}
 }
 
-func (s *server) getSession(sessID uint64) *session {
+func (s *server) getSession(sessID uint64) *Session {
 	return s.manager.getSession(sessID)
 }
 

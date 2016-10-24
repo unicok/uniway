@@ -1,16 +1,16 @@
-package main
+package uniway
 
 import "sync"
 
 type channel struct {
 	sync.RWMutex
-	sessions map[uint32]*session
+	sessions map[uint32]*Session
 	State    interface{}
 }
 
 func newChannel() *channel {
 	return &channel{
-		sessions: make(map[uint32]*session),
+		sessions: make(map[uint32]*Session),
 	}
 }
 
@@ -20,7 +20,7 @@ func (c *channel) len() int {
 	return len(c.sessions)
 }
 
-func (c *channel) fetch(cb func(*session)) {
+func (c *channel) fetch(cb func(*Session)) {
 	c.RLock()
 	defer c.RUnlock()
 	for _, sess := range c.sessions {
@@ -28,14 +28,14 @@ func (c *channel) fetch(cb func(*session)) {
 	}
 }
 
-func (c *channel) get(key uint32) *session {
+func (c *channel) get(key uint32) *Session {
 	c.RLock()
 	defer c.RUnlock()
 	sess, _ := c.sessions[key]
 	return sess
 }
 
-func (c *channel) put(key uint32, session *session) {
+func (c *channel) put(key uint32, session *Session) {
 	c.RLock()
 	defer c.RUnlock()
 	if sess, exists := c.sessions[key]; exists {
@@ -47,7 +47,7 @@ func (c *channel) put(key uint32, session *session) {
 	c.sessions[key] = session
 }
 
-func (c *channel) remove(key uint32, session *session) {
+func (c *channel) remove(key uint32, session *Session) {
 	session.removeCloseCallback(c)
 	delete(c.sessions, key)
 }

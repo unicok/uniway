@@ -1,4 +1,4 @@
-package main
+package uniway
 
 import (
 	"errors"
@@ -26,6 +26,18 @@ type EndpointConfig struct {
 	TimeoutCallback func()
 	ServerID        uint32
 	AuthKey         string
+}
+
+func DefaultEPConfig() EndpointConfig {
+	return EndpointConfig{
+		MemPool:      NewPool(2, 64, 64*1024, 1024*1024),
+		MaxPacket:    512 * 1024,
+		BufferSize:   64 * 1024,
+		SendChanSize: 102400,
+		RecvChanSize: 102400,
+		PingInterval: 30 * time.Second,
+		PingTimeout:  60 * time.Second,
+	}
 }
 
 // DialClient dial to gateway and return a client EndPoint.
@@ -72,7 +84,7 @@ func NewEPServer(conn net.Conn, config EndpointConfig) (*Endpoint, error) {
 }
 
 type vconn struct {
-	session  *session
+	session  *Session
 	ConnID   uint32
 	RemoteID uint32
 }
@@ -82,7 +94,7 @@ type Endpoint struct {
 	protocol
 	manager      *sessionManager
 	recvChanSize int
-	session      *session
+	session      *Session
 	lastActive   int64
 	newConnMutex sync.Mutex
 	newConnChan  chan uint32
@@ -108,7 +120,7 @@ func newEndpoint(pool Pool, maxPacketSize, recvChanSize int) *Endpoint {
 }
 
 // Accept is accept a virutal connection
-func (ep *Endpoint) Accept() (session *session, connID, remoteID uint32, err error) {
+func (ep *Endpoint) Accept() (session *Session, connID, remoteID uint32, err error) {
 	select {
 	case conn := <-ep.connectChan:
 		return conn.session, conn.ConnID, conn.RemoteID, nil
@@ -118,7 +130,7 @@ func (ep *Endpoint) Accept() (session *session, connID, remoteID uint32, err err
 }
 
 // Dial create a virtual connection and dial to a remote Endpoint
-func (ep *Endpoint) Dial(remoteID uint32) (*session, uint32, error) {
+func (ep *Endpoint) Dial(remoteID uint32) (*Session, uint32, error) {
 	ep.dialMutex.Lock()
 	defer ep.dialMutex.Unlock()
 
@@ -138,7 +150,7 @@ func (ep *Endpoint) Dial(remoteID uint32) (*session, uint32, error) {
 }
 
 // GetSession get a virtual connection session by session ID.
-func (ep *Endpoint) GetSession(sessionID uint64) *session {
+func (ep *Endpoint) GetSession(sessionID uint64) *Session {
 	return ep.manager.getSession(sessionID)
 }
 
@@ -146,7 +158,7 @@ func (ep *Endpoint) GetSession(sessionID uint64) *session {
 func (ep *Endpoint) Close() {
 	if atomic.CompareAndSwapInt32(&ep.closeFlag, 0, 1) {
 		ep.manager.dispose()
-		ep.session.close()
+		ep.session.Close()
 		close(ep.closeChan)
 	}
 }
@@ -189,12 +201,12 @@ func (ep *Endpoint) keepalive(pingInterval, pingTimeout time.Duration, timeoutCa
 }
 
 func (ep *Endpoint) loop() {
-	defer printPanicStack()
+	defer PrintPanicStack()
 
 	for {
 		atomic.StoreInt64(&ep.lastActive, time.Now().UnixNano())
 
-		msg, err := ep.session.receive()
+		msg, err := ep.session.Receive()
 		if err != nil {
 			return
 		}
@@ -213,7 +225,7 @@ func (ep *Endpoint) loop() {
 			case vconn.getCodec().(*virtualCodec).recvChan <- buf:
 				continue
 			default:
-				vconn.close()
+				vconn.Close()
 			}
 		}
 		ep.free(buf)
@@ -248,7 +260,7 @@ func (ep *Endpoint) processCmd(buf []byte) {
 		ep.free(buf)
 		vconn := ep.virtualConns.get(connID)
 		if vconn != nil {
-			vconn.close()
+			vconn.Close()
 		}
 
 	case pingCmd:

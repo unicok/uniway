@@ -4,7 +4,7 @@
 // +--------+---------+------+----------+
 //     4        4        1    Len - 4 -1
 
-package main
+package uniway
 
 import (
 	"bytes"
@@ -30,11 +30,11 @@ func (p *protocol) free(msg []byte) {
 	p.pool.Free(msg)
 }
 
-func (p *protocol) send(session *session, msg []byte) error {
-	err := session.send(&msg)
+func (p *protocol) send(session *Session, msg []byte) error {
+	err := session.Send(&msg)
 	if err != nil {
 		p.free(msg)
-		session.close()
+		session.Close()
 	}
 	return err
 }

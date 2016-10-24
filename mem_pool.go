@@ -1,4 +1,4 @@
-package main
+package uniway
 
 import (
 	"reflect"
