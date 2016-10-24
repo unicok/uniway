@@ -9,7 +9,7 @@ script:
     - go vet -x
     - go vet -x github.com/unicok/uniway
     - go install
-    - go install github.com/unicok/uniway
+    - go install github.com/unicok/uniway/uniway
     - go test -race -coverprofile=coverage.txt -covermode=atomic -v github.com/unicok/uniway
 
 after_success:
