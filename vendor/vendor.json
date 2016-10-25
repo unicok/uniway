@@ -3,22 +3,16 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "2avCvSn0XonfApKKuTMyiQmk7s0=",
-			"path": "github.com/Sirupsen/logrus",
-			"revision": "3ec0642a7fb6488f65b06f9040adc67e3990296a",
-			"revisionTime": "2016-08-29T20:23:21Z"
-		},
-		{
-			"checksumSHA1": "Lf3uUXTkKK5DJ37BxQvxO1Fq+K8=",
-			"path": "github.com/davecgh/go-spew/spew",
-			"revision": "6d212800a42e8ab5c146b8ace3490ee17e5225f9",
-			"revisionTime": "2016-09-07T16:21:46Z"
-		},
-		{
 			"checksumSHA1": "hU4VbPXSsZg1QjmaD2GCaZIS7ig=",
 			"path": "github.com/unicok/cmd",
 			"revision": "ca1314aa05a3b0f91fa3f482aa98d107d668b4c2",
 			"revisionTime": "2016-10-24T18:07:53Z"
+		},
+		{
+			"checksumSHA1": "Tw+DgNU6oDl0JWGB6g6T/EjBTUE=",
+			"path": "github.com/unicok/crypto/dh64",
+			"revision": "0441cb83f8c767a69e27937194991229a08f7356",
+			"revisionTime": "2016-10-24T17:28:56Z"
 		},
 		{
 			"checksumSHA1": "HwTYYziwztxtubzZfiA7dljFThs=",
@@ -33,10 +27,22 @@
 			"revisionTime": "2016-10-24T18:41:34Z"
 		},
 		{
-			"checksumSHA1": "Xz3hUrPvOYGWTuHrEryoYAj9zwg=",
-			"path": "golang.org/x/sys/unix",
-			"revision": "9bb9f0998d48b31547d975974935ae9b48c7a03c",
-			"revisionTime": "2016-10-11T23:07:22Z"
+			"checksumSHA1": "5YMzFioDpau55+3jmzkmaz7GgI8=",
+			"path": "github.com/unicok/snet",
+			"revision": "4c8bdd7a5552687c14dff489a4515819ca1f5398",
+			"revisionTime": "2016-10-25T13:18:10Z"
+		},
+		{
+			"checksumSHA1": "s2dZd24YeEdf/8v+iv/Ws/fQuEs=",
+			"path": "github.com/unicok/unet",
+			"revision": "766a8934cecd56cebfe8b60fd298c1fdea9b7551",
+			"revisionTime": "2016-10-25T16:40:39Z"
+		},
+		{
+			"checksumSHA1": "1+nmqWOrs4303kdf/0pTOkTMSnc=",
+			"path": "github.com/unicok/utest",
+			"revision": "c341a3ef8b8a6814e422a65bb565267286139461",
+			"revisionTime": "2016-10-24T17:15:38Z"
 		}
 	],
 	"rootPath": "github.com/unicok/uniway"
