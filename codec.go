@@ -115,13 +115,26 @@ func (c *virtualCodec) Receive() (interface{}, error) {
 		return nil, io.EOF
 	}
 	defer c.free(buf)
-	return c.format.DecodeMessage(buf[cmdConnID+cmdIDSize:])
+	if c.format != nil {
+		return c.format.DecodeMessage(buf[cmdConnID+cmdIDSize:])
+	}
+
+	msg := make([]byte, len(buf[cmdConnID+cmdIDSize:]))
+	copy(msg, buf[cmdConnID+cmdIDSize:])
+	return &msg, nil
 }
 
 func (c *virtualCodec) Send(msg interface{}) error {
-	msg2, err := c.format.EncodeMessage(msg)
-	if err != nil {
-		return err
+	var msg2 []byte
+	var err error
+
+	if c.format != nil {
+		msg2, err = c.format.EncodeMessage(msg)
+		if err != nil {
+			return err
+		}
+	} else {
+		msg2 = *(msg.(*[]byte))
 	}
 
 	if len(msg2) > c.maxPacketSize {
