@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/unicok/slab"
+	"github.com/unicok/unet"
 )
 
 type protocol struct {
@@ -32,7 +33,7 @@ func (p *protocol) free(msg []byte) {
 	p.pool.Free(msg)
 }
 
-func (p *protocol) send(session *Session, msg []byte) error {
+func (p *protocol) send(session *unet.Session, msg []byte) error {
 	err := session.Send(&msg)
 	if err != nil {
 		p.free(msg)
@@ -96,8 +97,6 @@ func (p *protocol) encodeDialCmd(remoteID uint32) []byte {
 	binary.LittleEndian.PutUint32(buffer[dialCmdRemoteID:], remoteID)
 	return buffer
 }
-
-// ==================================================
 
 // ==================================================
 

@@ -9,11 +9,27 @@ import (
 	"testing"
 
 	"github.com/unicok/slab"
+	"github.com/unicok/unet"
+	"github.com/unicok/utest"
 )
 
 var TestAddr string
 var TestPool = slab.NewSyncPool(64, 64*1024, 2)
 var TestProto = protocol{TestPool, 2048}
+
+type TestMsgFormat struct{}
+
+func (f *TestMsgFormat) EncodeMessage(msg interface{}) ([]byte, error) {
+	buf := make([]byte, len(msg.([]byte)))
+	copy(buf, msg.([]byte))
+	return buf, nil
+}
+
+func (f *TestMsgFormat) DecodeMessage(msg []byte) (interface{}, error) {
+	buf := make([]byte, len(msg))
+	copy(buf, msg)
+	return buf, nil
+}
 
 func init() {
 	lsn, err := net.Listen("tcp", "127.0.0.1:0")
@@ -53,10 +69,10 @@ func (w NullWriter) Write(b []byte) (int, error) { return len(b), nil }
 
 func Test_Codec(t *testing.T) {
 	conn, err := net.Dial("tcp", TestAddr)
-	ok(t, err)
+	utest.IsNilNow(t, err)
 	defer conn.Close()
 
-	codec := newCodec(&TestProto, 0, conn, 1024)
+	codec := TestProto.newCodec(0, conn, 1024)
 
 	for i := 0; i < 1000; i++ {
 		buffer1 := TestPool.Alloc(SizeofLen + rand.Intn(1024))
@@ -71,86 +87,86 @@ func Test_Codec(t *testing.T) {
 		codec.Send(&buffer1)
 
 		buffer3, err := codec.Receive()
-		ok(t, err)
-		equals(t, *(buffer3.(*[]byte)), buffer2)
+		utest.IsNilNow(t, err)
+		utest.EqualNow(t, buffer2, *(buffer3.(*[]byte)))
 	}
 }
 
 func Test_VirtualCodec(t *testing.T) {
 	conn, err := net.Dial("tcp", TestAddr)
-	ok(t, err)
+	utest.IsNilNow(t, err)
 	defer conn.Close()
 
-	codec := newCodec(&TestProto, 0, conn, 1024)
-	pconn := newSession(codec, 1000)
+	codec := TestProto.newCodec(0, conn, 1024)
+	pconn := unet.NewSession(codec, 1000)
 
 	var lastActive int64
-	vcodec := newVirtualCodec(&TestProto, pconn, 123, 1024, &lastActive)
+	vcodec := TestProto.newVirtualCodec(pconn, 123, 1024, &lastActive, &TestMsgFormat{})
 
 	for i := 0; i < 1000; i++ {
 		buffer1 := make([]byte, 1024)
 		for i := 0; i < len(buffer1); i++ {
 			buffer1[i] = byte(rand.Intn(256))
 		}
-		vcodec.Send(&buffer1)
+		vcodec.Send(buffer1)
 
 		msg, err := codec.Receive()
-		ok(t, err)
+		utest.IsNilNow(t, err)
 
 		buffer2 := *(msg.(*[]byte))
 		connID := codec.decodePacket(buffer2)
-		assert(t, 123 == connID, "")
+		utest.EqualNow(t, connID, 123)
 		vcodec.recvChan <- buffer2
 
 		buffer3, err := vcodec.Receive()
-		ok(t, err)
-		equals(t, *(buffer3.(*[]byte)), buffer1)
+		utest.IsNilNow(t, err)
+		utest.EqualNow(t, buffer1, buffer3.([]byte))
 	}
 }
 
 func Test_BadCodec(t *testing.T) {
 	conn, err := net.Dial("tcp", TestAddr)
-	ok(t, err)
+	utest.IsNilNow(t, err)
 
-	codec := newCodec(&TestProto, 0, conn, 1024)
+	codec := TestProto.newCodec(0, conn, 1024)
 	_, err = conn.Write([]byte{255, 0, 0, 0})
-	ok(t, err)
+	utest.IsNilNow(t, err)
 	codec.reader.ReadByte()
 	codec.reader.UnreadByte()
 	conn.Close()
 
 	msg, err := codec.Receive()
-	assert(t, msg == nil, "msg")
-	assert(t, err != nil, err.Error())
+	utest.IsNilNow(t, msg)
+	utest.NotNilNow(t, err)
 
 	conn, err = net.Dial("tcp", TestAddr)
-	ok(t, err)
+	utest.IsNilNow(t, err)
 
-	codec = newCodec(&TestProto, 0, conn, 1024)
+	codec = TestProto.newCodec(0, conn, 1024)
 	_, err = conn.Write([]byte{255, 255, 255, 255})
-	ok(t, err)
+	utest.IsNilNow(t, err)
 
 	msg, err = codec.Receive()
-	assert(t, msg == nil, "msg")
-	assert(t, err != nil, err.Error())
-	equals(t, ErrTooLargePacket, err)
+	utest.IsNilNow(t, msg)
+	utest.NotNilNow(t, err)
+	utest.EqualNow(t, err, ErrTooLargePacket)
 }
 
 func Test_BadVirtualCodec(t *testing.T) {
 	conn, err := net.Dial("tcp", TestAddr)
-	ok(t, err)
+	utest.IsNilNow(t, err)
 	defer conn.Close()
 
-	codec := newCodec(&TestProto, 0, conn, 1024)
-	pconn := newSession(codec, 1000)
+	codec := TestProto.newCodec(0, conn, 1024)
+	pconn := unet.NewSession(codec, 1000)
 
 	var lastActive int64
-	vcodec := newVirtualCodec(&TestProto, pconn, 123, 1024, &lastActive)
+	vcodec := TestProto.newVirtualCodec(pconn, 123, 1024, &lastActive, &TestMsgFormat{})
 
 	bigMsg := make([]byte, TestProto.maxPacketSize+1)
-	err = vcodec.Send(&bigMsg)
-	assert(t, err != nil, err.Error())
-	equals(t, ErrTooLargePacket, err)
+	err = vcodec.Send(bigMsg)
+	utest.NotNilNow(t, err)
+	utest.EqualNow(t, err, ErrTooLargePacket)
 
 	vcodec.recvChan <- bigMsg
 	vcodec.Close()

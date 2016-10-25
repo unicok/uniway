@@ -4,40 +4,43 @@ import (
 	"math/rand"
 	"net"
 	"testing"
+
+	"github.com/unicok/unet"
+	"github.com/unicok/utest"
 )
 
 func Test_DialCmd(t *testing.T) {
 	conn, err := net.Dial("tcp", TestAddr)
-	ok(t, err)
+	utest.IsNilNow(t, err)
 	defer conn.Close()
 
-	codec := newCodec(&TestProto, 0, conn, 1024)
+	codec := TestProto.newCodec(0, conn, 1024)
 
 	for i := 0; i < 10000; i++ {
 		remoteID1 := rand.Uint32()
 		msg1 := TestProto.encodeDialCmd(remoteID1)
 
 		err := codec.Send(&msg1)
-		ok(t, err)
+		utest.IsNilNow(t, err)
 
 		msg2, err := codec.Receive()
-		ok(t, err)
+		utest.IsNilNow(t, err)
 
 		msg3 := *(msg2.(*[]byte))
 		cmd := TestProto.decodeCmd(msg3)
-		assert(t, cmd == dialCmd, "")
+		utest.EqualNow(t, cmd, dialCmd)
 
 		remoteID2 := TestProto.decodeDialCmd(msg3)
-		assert(t, remoteID1 == remoteID2, "")
+		utest.EqualNow(t, remoteID1, remoteID2)
 	}
 }
 
 func Test_AcceptCmd(t *testing.T) {
 	conn, err := net.Dial("tcp", TestAddr)
-	ok(t, err)
+	utest.IsNilNow(t, err)
 	defer conn.Close()
 
-	codec := newCodec(&TestProto, 0, conn, 1024)
+	codec := TestProto.newCodec(0, conn, 1024)
 
 	for i := 0; i < 10000; i++ {
 		connID1 := rand.Uint32()
@@ -45,53 +48,53 @@ func Test_AcceptCmd(t *testing.T) {
 		msg1 := TestProto.encodeAcceptCmd(connID1, remoteID1)
 
 		err := codec.Send(&msg1)
-		ok(t, err)
+		utest.IsNilNow(t, err)
 
 		msg2, err := codec.Receive()
-		ok(t, err)
+		utest.IsNilNow(t, err)
 
 		msg3 := *(msg2.(*[]byte))
 		cmd := TestProto.decodeCmd(msg3)
-		assert(t, cmd == acceptCmd, "")
+		utest.EqualNow(t, cmd, acceptCmd)
 
 		connID2, remoteID2 := TestProto.decodeAcceptCmd(msg3)
-		assert(t, connID1 == connID2, "")
-		assert(t, remoteID1 == remoteID2, "")
+		utest.EqualNow(t, connID1, connID2)
+		utest.EqualNow(t, remoteID1, remoteID2)
 	}
 }
 
 func Test_RefuseCmd(t *testing.T) {
 	conn, err := net.Dial("tcp", TestAddr)
-	ok(t, err)
+	utest.IsNilNow(t, err)
 	defer conn.Close()
 
-	codec := newCodec(&TestProto, 0, conn, 1024)
+	codec := TestProto.newCodec(0, conn, 1024)
 
 	for i := 0; i < 10000; i++ {
 		remoteID1 := rand.Uint32()
 		msg1 := TestProto.encodeRefuseCmd(remoteID1)
 
 		err := codec.Send(&msg1)
-		ok(t, err)
+		utest.IsNilNow(t, err)
 
 		msg2, err := codec.Receive()
-		ok(t, err)
+		utest.IsNilNow(t, err)
 
 		msg3 := *(msg2.(*[]byte))
 		cmd := TestProto.decodeCmd(msg3)
-		assert(t, cmd == refuseCmd, "")
+		utest.EqualNow(t, cmd, refuseCmd)
 
 		remoteID2 := TestProto.decodeRefuseCmd(msg3)
-		assert(t, remoteID1 == remoteID2, "")
+		utest.EqualNow(t, remoteID1, remoteID2)
 	}
 }
 
 func Test_ConnectCmd(t *testing.T) {
 	conn, err := net.Dial("tcp", TestAddr)
-	ok(t, err)
+	utest.IsNilNow(t, err)
 	defer conn.Close()
 
-	codec := newCodec(&TestProto, 0, conn, 1024)
+	codec := TestProto.newCodec(0, conn, 1024)
 
 	for i := 0; i < 10000; i++ {
 		connID1 := rand.Uint32()
@@ -99,66 +102,66 @@ func Test_ConnectCmd(t *testing.T) {
 		msg1 := TestProto.encodeConnectCmd(connID1, remoteID1)
 
 		err := codec.Send(&msg1)
-		ok(t, err)
+		utest.IsNilNow(t, err)
 
 		msg2, err := codec.Receive()
-		ok(t, err)
+		utest.IsNilNow(t, err)
 
 		msg3 := *(msg2.(*[]byte))
 		cmd := TestProto.decodeCmd(msg3)
-		assert(t, cmd == connectCmd, "")
+		utest.EqualNow(t, cmd, connectCmd)
 
 		connID2, remoteID2 := TestProto.decodeConnectCmd(msg3)
-		assert(t, connID1 == connID2, "")
-		assert(t, remoteID1 == remoteID2, "")
+		utest.EqualNow(t, connID1, connID2)
+		utest.EqualNow(t, remoteID1, remoteID2)
 	}
 }
 
 func Test_CloseCmd(t *testing.T) {
 	conn, err := net.Dial("tcp", TestAddr)
-	ok(t, err)
+	utest.IsNilNow(t, err)
 	defer conn.Close()
 
-	codec := newCodec(&TestProto, 0, conn, 1024)
+	codec := TestProto.newCodec(0, conn, 1024)
 
 	for i := 0; i < 10000; i++ {
 		conndID1 := rand.Uint32()
 		msg1 := TestProto.encodeCloseCmd(conndID1)
 
 		err := codec.Send(&msg1)
-		ok(t, err)
+		utest.IsNilNow(t, err)
 
 		msg2, err := codec.Receive()
-		ok(t, err)
+		utest.IsNilNow(t, err)
 
 		msg3 := *(msg2.(*[]byte))
 		cmd := TestProto.decodeCmd(msg3)
-		assert(t, cmd == closeCmd, "")
+		utest.EqualNow(t, cmd, closeCmd)
 
 		conndID2 := TestProto.decodeCloseCmd(msg3)
-		assert(t, conndID1 == conndID2, "")
+		utest.EqualNow(t, conndID1, conndID2)
 	}
 }
 
 func Test_PingCmd(t *testing.T) {
 	conn, err := net.Dial("tcp", TestAddr)
-	ok(t, err)
+	utest.IsNilNow(t, err)
 	defer conn.Close()
 
-	codec := newCodec(&TestProto, 0, conn, 1024)
+	codec := TestProto.newCodec(0, conn, 1024)
 
 	for i := 0; i < 10000; i++ {
 		msg1 := TestProto.encodePingCmd()
 
 		err := codec.Send(&msg1)
-		ok(t, err)
+		utest.IsNilNow(t, err)
 
 		msg2, err := codec.Receive()
-		ok(t, err)
+		utest.IsNilNow(t, err)
 
 		msg3 := *(msg2.(*[]byte))
 		cmd := TestProto.decodeCmd(msg3)
-		assert(t, cmd == pingCmd, "")
+		utest.EqualNow(t, cmd, pingCmd)
 	}
 }
 
@@ -170,53 +173,53 @@ func Test_ServerHandshake(t *testing.T) {
 
 	go func() {
 		conn, err := net.Dial("tcp", lsn.Addr().String())
-		ok(t, err)
+		utest.IsNilNow(t, err)
 		TestProto.serverInit(conn, 123, []byte("test"))
 	}()
 
 	conn, err := lsn.Accept()
-	ok(t, err)
+	utest.IsNilNow(t, err)
 
 	serverID, err := TestProto.serverAuth(conn, []byte("test"))
-	ok(t, err)
-	assert(t, serverID == 123, "")
+	utest.IsNilNow(t, err)
+	utest.EqualNow(t, serverID, 123)
 }
 
 func Test_BadSession(t *testing.T) {
 	conn, err := net.Dial("tcp", TestAddr)
-	ok(t, err)
+	utest.IsNilNow(t, err)
 	defer conn.Close()
 
-	codec := newCodec(&TestProto, 0, conn, 1024)
-	session := newSession(codec, 10)
+	codec := TestProto.newCodec(0, conn, 1024)
+	session := unet.NewSession(codec, 10)
 	session.Close()
 
 	err = TestProto.send(session, TestProto.encodePingCmd())
-	assert(t, err != nil, "")
+	utest.NotNilNow(t, err)
 }
 
 func Test_BadHandshake(t *testing.T) {
 	lsn1, err := net.Listen("tcp", "127.0.0.1:0")
-	ok(t, err)
+	utest.IsNilNow(t, err)
 	defer lsn1.Close()
 
 	go func() {
 		lsn1.Accept()
 	}()
 	conn1, err := net.Dial("tcp", lsn1.Addr().String())
-	ok(t, err)
+	utest.IsNilNow(t, err)
 	defer conn1.Close()
 	err = TestProto.serverInit(conn1, 1, []byte("1"))
-	assert(t, err != nil, "")
+	utest.NotNilNow(t, err)
 
 	go func() {
 		net.Dial("tcp", lsn1.Addr().String())
 	}()
 	conn2, err := lsn1.Accept()
-	ok(t, err)
+	utest.IsNilNow(t, err)
 	defer conn2.Close()
 	_, err = TestProto.serverAuth(conn2, []byte("1"))
-	assert(t, err != nil, "")
+	utest.NotNilNow(t, err)
 }
 
 func XXOO() interface{} {

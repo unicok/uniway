@@ -8,10 +8,12 @@ import (
 
 	"github.com/unicok/cmd"
 	"github.com/unicok/slab"
-	. "github.com/unicok/uniway"
+	"github.com/unicok/snet"
+	"github.com/unicok/uniway"
 )
 
 var (
+	reusePort       = flag.Bool("ReusePort", false, "Enable/Disable the reuseport feature.")
 	maxPacket       = flag.Int("MaxPacket", 512*1024, "Limit max packet size.")
 	memPoolType     = flag.String("MemPoolType", "atom", "Type of memory pool ('sync', 'atom' or 'chan').")
 	memPoolFactor   = flag.Int("MemPoolFactor", 2, "Growth in chunk size in memory pool.")
@@ -61,38 +63,68 @@ func main() {
 		println(`unsupported memory pool type, must be "sync", "atom" or "chan"`)
 	}
 
-	gw := NewGateway(pool, *maxPacket)
+	gw := uniway.NewGateway(pool, *maxPacket)
 
-	// client side
-	clientConfig := Config{
-		MaxConn:      *clientMaxConn,
-		BufferSize:   *clientBufferSize,
-		SendChanSize: *clientSendChanSize,
-		IdleTimeout:  *clientIdleTimeout,
-	}
-	go gw.ServeClients(listen("client", *clientAddr), clientConfig)
+	go gw.ServeClients(
+		listen("client", *clientAddr, *reusePort,
+			*clientSnetEnable,
+			*clientSnetEncrypt,
+			*clientSnetBuffer,
+			*clientSnetInitTimeout,
+			*clientSnetWaitTimeout,
+		),
+		uniway.GatewayCfg{
+			MaxConn:      *clientMaxConn,
+			BufferSize:   *clientBufferSize,
+			SendChanSize: *clientSendChanSize,
+			IdleTimeout:  *clientIdleTimeout,
+		},
+	)
 
-	// server side
-	serverConfig := Config{
-		AuthKey:      *serverAuthKey,
-		BufferSize:   *serverBufferSize,
-		SendChanSize: *serverSendChanSize,
-		IdleTimeout:  *serverIdleTimeout,
-	}
-	go gw.ServeServers(listen("server", *serverAddr), serverConfig)
+	go gw.ServeServers(
+		listen("server", *serverAddr, *reusePort,
+			*serverSnetEnable,
+			*serverSnetEncrypt,
+			*serverSnetBuffer,
+			*serverSnetInitTimeout,
+			*serverSnetWaitTimeout,
+		),
+		uniway.GatewayCfg{
+			AuthKey:      *serverAuthKey,
+			BufferSize:   *serverBufferSize,
+			SendChanSize: *serverSendChanSize,
+			IdleTimeout:  *serverIdleTimeout,
+		},
+	)
 
 	cmd.Shell("uniway")
 
 	gw.Stop()
 }
 
-func listen(who, addr string) net.Listener {
+func listen(who, addr string, reuse, snetEnable, snetEncrypt bool, snetBuffer int, snetInitTimeout, snetWaitTimeout time.Duration) net.Listener {
 	var lsn net.Listener
 	var err error
 
+	// if reuse {
+	// 	lsn, err = reuseport.NewReusablePortListener("tcp", addr)
+	// } else {
 	lsn, err = net.Listen("tcp", addr)
+	// }
+
 	if err != nil {
 		log.Fatalf("setup %s listener at %s failed - %s", who, addr, err)
+	}
+
+	if snetEnable {
+		lsn, _ = snet.Listen(snet.Config{
+			EnableCrypt:        snetEncrypt,
+			RewriterBufferSize: snetBuffer,
+			HandshakeTimeout:   snetInitTimeout,
+			ReconnWaitTimeout:  snetWaitTimeout,
+		}, func() (net.Listener, error) {
+			return lsn, nil
+		})
 	}
 
 	log.Printf("setup %s listener at - %s", who, lsn.Addr())
