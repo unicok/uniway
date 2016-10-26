@@ -1,7 +1,6 @@
 package unet
 
 import (
-	"container/list"
 	"errors"
 	"sync"
 	"sync/atomic"
@@ -19,10 +18,11 @@ type Session struct {
 	sendChan  chan interface{}
 	sendMutex sync.RWMutex
 
-	closeFlag      int32
-	closeChan      chan int
-	closeMutex     sync.Mutex
-	closeCallbacks *list.List
+	closeFlag          int32
+	closeChan          chan int
+	closeMutex         sync.Mutex
+	firstCloseCallback *closeCallback
+	lastCloseCallback  *closeCallback
 
 	State interface{}
 }
@@ -134,6 +134,7 @@ type closeCallback struct {
 	Handler interface{}
 	Key     interface{}
 	Func    func()
+	Next    *closeCallback
 }
 
 func (session *Session) AddCloseCallback(handler, key interface{}, callback func()) {
@@ -144,11 +145,19 @@ func (session *Session) AddCloseCallback(handler, key interface{}, callback func
 	session.closeMutex.Lock()
 	defer session.closeMutex.Unlock()
 
-	if session.closeCallbacks == nil {
-		session.closeCallbacks = list.New()
+	newItem := &closeCallback{
+		Handler: handler,
+		Key:     key,
+		Func:    callback,
+		Next:    nil,
 	}
 
-	session.closeCallbacks.PushBack(&closeCallback{handler, key, callback})
+	if session.firstCloseCallback == nil {
+		session.firstCloseCallback = newItem
+	} else {
+		session.lastCloseCallback.Next = newItem
+	}
+	session.lastCloseCallback = newItem
 }
 
 func (session *Session) RemoveCloseCallback(handler, key interface{}) {
@@ -159,25 +168,28 @@ func (session *Session) RemoveCloseCallback(handler, key interface{}) {
 	session.closeMutex.Lock()
 	defer session.closeMutex.Unlock()
 
-	for i := session.closeCallbacks.Front(); i != nil; i = i.Next() {
-		callback := i.Value.(*closeCallback)
+	var prev *closeCallback
+	for callback := session.firstCloseCallback; callback != nil; prev, callback = callback, callback.Next {
 		if callback.Handler == handler && callback.Key == key {
-			session.closeCallbacks.Remove(i)
+			if session.firstCloseCallback == callback {
+				session.firstCloseCallback = callback.Next
+			} else {
+				prev.Next = callback.Next
+			}
+			if session.lastCloseCallback == callback {
+				session.lastCloseCallback = prev
+			}
 			return
 		}
 	}
+
 }
 
 func (session *Session) invokeCloseCallbacks() {
 	session.closeMutex.Lock()
 	defer session.closeMutex.Unlock()
 
-	if session.closeCallbacks == nil {
-		return
-	}
-
-	for i := session.closeCallbacks.Front(); i != nil; i = i.Next() {
-		callback := i.Value.(*closeCallback)
+	for callback := session.firstCloseCallback; callback != nil; callback = callback.Next {
 		callback.Func()
 	}
 }
