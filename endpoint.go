@@ -167,6 +167,7 @@ func (p *EndPoint) Close() {
 		p.manager.Dispose()
 		p.session.Close()
 		close(p.closeChan)
+		log.Printf("endpoint closed %d", p.session.ID())
 	}
 }
 

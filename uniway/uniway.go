@@ -127,6 +127,7 @@ func listen(who, addr string, reuse, snetEnable, snetEncrypt bool, snetBuffer in
 		})
 	}
 
-	log.Printf("setup %s listener at - %s snet:%v", who, lsn.Addr(), snetEnable)
+	log.Printf("setup %s listener at - %s [snet:%v, encrypt:%v]",
+		who, lsn.Addr(), snetEnable, snetEncrypt)
 	return lsn
 }

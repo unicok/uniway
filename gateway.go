@@ -97,6 +97,7 @@ func (g *Gateway) getPhysicalConn(connID uint32, side int) *unet.Session {
 // ServeClients serve client connections.
 func (g *Gateway) ServeClients(lsn net.Listener, cfg GatewayCfg) {
 	g.servers[0] = unet.NewServer(lsn, unet.ProtocolFunc(func(rw io.ReadWriter) (unet.Codec, error) {
+		log.Printf("accept client from %s", rw.(net.Conn).RemoteAddr())
 		return g.newCodec(atomic.AddUint32(&g.physicalConnID, 1), rw.(net.Conn), cfg.BufferSize), nil
 	}), cfg.SendChanSize)
 
@@ -170,6 +171,8 @@ func (gs *gwState) Dispose() {
 		for connID := range gs.virtualConns {
 			gs.gateway.closeVirtualConn(connID)
 		}
+
+		log.Printf("session close %d", gs.id)
 	})
 }
 
