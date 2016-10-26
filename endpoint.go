@@ -200,7 +200,7 @@ func (p *EndPoint) addVirtualConn(connID, remoteID uint32, c chan *Conn) {
 	session := p.manager.NewSession(codec, 0)
 	p.virtualConns.Put(connID, session)
 	select {
-	case c <- &Conn{session, connID, remoteID}:
+	case c <- &Conn{Session: session, connID: connID, remoteID: remoteID}:
 	case <-p.closeChan:
 	default:
 		p.send(p.session, p.encodeCloseCmd(connID))
